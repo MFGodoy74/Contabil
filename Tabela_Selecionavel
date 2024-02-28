@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tabela Interativa</title>
     <style>
+        /* Estilos para o formulário de popup */
+        .popup {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+        }
+        
+        /* Estilos para o fundo escurecido quando o popup é exibido */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+
+        /* Estilos para o botão fechar do popup */
+        .popup-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
         table {
             border-collapse: collapse;
             width: 100%;
@@ -27,6 +60,8 @@
     </style>
 </head>
 <body>
+
+<span class="notification-icon" onclick="mostrarNotificacao()">🔔</span>
 
 <?php
 // Configurações de conexão com o banco de dados
@@ -123,8 +158,9 @@ $result = $conn->query($sql);
     </tbody>
 </table>
 
-<!-- Formulário de edição -->
-<div id="editForm" style="display: none;">
+<!-- Formulário de edição em popup -->
+<div class="popup" id="editForm">
+    <span class="popup-close" onclick="fecharPopup()">&times;</span>
     <h2>Editar Registro</h2>
     <form id="editRecordForm" method="post">
         <!-- Campos de edição -->
@@ -145,18 +181,48 @@ $result = $conn->query($sql);
     </form>
 </div>
 
+<!-- Fundo escurecido -->
+<div class="popup-overlay" id="popupOverlay" onclick="fecharPopup()"></div>
+
 <script>
     function mostrarRegistro(id) {
-        // Aqui você pode implementar a lógica para carregar os detalhes do registro selecionado e exibir no formulário de edição
+        // Exibir o formulário de edição em popup
         document.getElementById("editForm").style.display = "block";
+        // Exibir o fundo escurecido
+        document.getElementById("popupOverlay").style.display = "block";
+
+        // Preencher o ID do registro no formulário de edição
         document.getElementById("editId").value = id;
-        // Supondo que você tenha os detalhes do registro disponíveis em algum lugar, você pode preencher os campos do formulário assim:
-        // document.getElementById("editStatus").value = detalhesDoRegistro.status;
-        // document.getElementById("editDtPagamento").value = detalhesDoRegistro.dt_pagamento;
-        // document.getElementById("editVrPago").value = detalhesDoRegistro.vr_pago;
-        // document.getElementById("editTypePag").value = detalhesDoRegistro.type_pag;
-        // document.getElementById("editIdUsuario").value = detalhesDoRegistro.id_usuario;
-        // document.getElementById("editNomeUser").value = detalhesDoRegistro.nome_user;
+
+        // Recuperar os detalhes do registro selecionado e preencher o formulário de edição
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                var dados = JSON.parse(this.responseText);
+                document.getElementById("editStatus").value = dados.status;
+                document.getElementById("editDtPagamento").value = dados.dt_pagamento;
+                document.getElementById("editVrPago").value = dados.vr_pago;
+                document.getElementById("editTypePag").value = dados.type_pag;
+                document.getElementById("editIdUsuario").value = dados.id_usuario;
+                document.getElementById("editNomeUser").value = dados.nome_user;
+            }
+        };
+        xhttp.open("GET", "detalhes_registro.php?id=" + id, true);
+        xhttp.send();
+    }
+
+    function fecharPopup() {
+        // Ocultar o formulário de edição
+        document.getElementById("editForm").style.display = "none";
+        // Ocultar o fundo escurecido
+        document.getElementById("popupOverlay").style.display = "none";
+    }
+
+    function mostrarNotificacao() {
+        // Contagem de registros com vencimento próximo
+        var registrosProximos = document.querySelectorAll('.highlight').length;
+        alert("Existem " + registrosProximos + " registros com vencimento próximo.");
+        // Implemente aqui a lógica para exibir notificações de registros com vencimentos próximos
     }
 </script>
 
