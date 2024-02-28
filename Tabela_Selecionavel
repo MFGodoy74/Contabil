@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela Interativa</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
+        }
+        .highlight {
+            background-color: yellow; /* Cor de destaque */
+        }
+    </style>
+</head>
+<body>
+
+<?php
+// Configurações de conexão com o banco de dados
+$servername = "localhost";
+$username = "root";
+$password = "emporium";
+$dbname = "aut_coml";
+
+// Conectar ao banco de dados
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Verificar a conexão
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Verificar se o formulário de edição foi submetido
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Processar e salvar os dados atualizados
+    $id = $_POST['id'];
+    $status = $_POST['status'];
+    $dt_pagamento = ($_POST['dt_pagamento'] != '') ? date('Y-m-d', strtotime($_POST['dt_pagamento'])) : null; // Converte a data para o formato MySQL (AAAA-MM-DD)
+    $vr_pago = $_POST['vr_pago'];
+    $type_pag = $_POST['type_pag'];
+    $id_usuario = $_POST['id_usuario'];
+    $nome_user = $_POST['nome_user'];
+
+    // Atualiza o registro no banco de dados
+    $sql_update = "UPDATE tbl_mov_contabil SET status='$status', dt_pagamento='$dt_pagamento', vr_pago='$vr_pago', type_pag='$type_pag', id_usuario='$id_usuario', nome_user='$nome_user' WHERE id=$id";
+
+    if ($conn->query($sql_update) === TRUE) {
+        echo "Registro atualizado com sucesso!";
+    } else {
+        echo "Erro ao atualizar o registro: " . $conn->error;
+    }
+}
+
+// Query para selecionar os dados da tabela
+$sql = "SELECT id, idcontabil, idCentroCusto, idSubCentroCusto, idEntidade, NumDocumento, numParcelas, valorParcela, dataVencimento, status, dt_pagamento, vr_pago, type_pag, id_usuario, nome_user FROM tbl_mov_contabil";
+$result = $conn->query($sql);
+?>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>ID Contábil</th>
+            <th>ID Centro de Custo</th>
+            <th>ID SubCentro de Custo</th>
+            <th>ID Entidade</th>
+            <th>Número do Documento</th>
+            <th>Número de Parcelas</th>
+            <th>Valor da Parcela</th>
+            <th>Data de Vencimento</th>
+            <th>Status</th>
+            <th>Data de Pagamento</th>
+            <th>Valor Pago</th>
+            <th>Tipo de Pagamento</th>
+            <th>ID do Usuário</th>
+            <th>Nome do Usuário</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+        if ($result && $result->num_rows > 0) {
+            // Output dos dados da tabela
+            while($row = $result->fetch_assoc()) {
+                $dataVencimento = strtotime($row["dataVencimento"]);
+                $diasRestantes = ($dataVencimento - time()) / (60 * 60 * 24);
+                $class = ($diasRestantes <= 7) ? "class='highlight'" : "";
+                echo "<tr $class onclick=\"mostrarRegistro(" . $row["id"] . ")\">";
+                echo "<td>" . htmlspecialchars($row["id"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["idcontabil"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["idCentroCusto"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["idSubCentroCusto"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["idEntidade"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["NumDocumento"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["numParcelas"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["valorParcela"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["dataVencimento"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["status"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["dt_pagamento"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["vr_pago"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["type_pag"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["id_usuario"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["nome_user"]) . "</td>";
+                echo "</tr>";
+            }
+        } else {
+            echo "<tr><td colspan='15'>Nenhum resultado encontrado</td></tr>";
+        }
+        ?>
+    </tbody>
+</table>
+
+<!-- Formulário de edição -->
+<div id="editForm" style="display: none;">
+    <h2>Editar Registro</h2>
+    <form id="editRecordForm" method="post">
+        <!-- Campos de edição -->
+        <input type="hidden" id="editId" name="id">
+        <label for="editStatus">Status:</label>
+        <input type="text" id="editStatus" name="status"><br><br>
+        <label for="editDtPagamento">Data de Pagamento:</label>
+        <input type="text" id="editDtPagamento" name="dt_pagamento"><br><br>
+        <label for="editVrPago">Valor Pago:</label>
+        <input type="text" id="editVrPago" name="vr_pago"><br><br>
+        <label for="editTypePag">Tipo de Pagamento:</label>
+        <input type="text" id="editTypePag" name="type_pag"><br><br>
+        <label for="editIdUsuario">ID do Usuário:</label>
+        <input type="text" id="editIdUsuario" name="id_usuario"><br><br>
+        <label for="editNomeUser">Nome do Usuário:</label>
+        <input type="text" id="editNomeUser" name="nome_user"><br><br>
+        <input type="submit" value="Salvar">
+    </form>
+</div>
+
+<script>
+    function mostrarRegistro(id) {
+        // Aqui você pode implementar a lógica para carregar os detalhes do registro selecionado e exibir no formulário de edição
+        document.getElementById("editForm").style.display = "block";
+        document.getElementById("editId").value = id;
+        // Supondo que você tenha os detalhes do registro disponíveis em algum lugar, você pode preencher os campos do formulário assim:
+        // document.getElementById("editStatus").value = detalhesDoRegistro.status;
+        // document.getElementById("editDtPagamento").value = detalhesDoRegistro.dt_pagamento;
+        // document.getElementById("editVrPago").value = detalhesDoRegistro.vr_pago;
+        // document.getElementById("editTypePag").value = detalhesDoRegistro.type_pag;
+        // document.getElementById("editIdUsuario").value = detalhesDoRegistro.id_usuario;
+        // document.getElementById("editNomeUser").value = detalhesDoRegistro.nome_user;
+    }
+</script>
+
+<?php
+// Fechar a conexão com o banco de dados
+if ($conn) {
+    $conn->close();
+}
+?>
+
+</body>
+</html>
