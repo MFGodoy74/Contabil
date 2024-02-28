@@ -57,11 +57,31 @@
         .highlight {
             background-color: yellow; /* Cor de destaque */
         }
+        .notification-icon {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 9999;
+        }
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: red;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
 
-<span class="notification-icon" onclick="mostrarNotificacao()">🔔</span>
+<span class="notification-icon">🔔<span class="notification-count" id="notificationCount">0</span></span>
 
 <?php
 // Configurações de conexão com o banco de dados
@@ -103,6 +123,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // Query para selecionar os dados da tabela
 $sql = "SELECT id, idcontabil, idCentroCusto, idSubCentroCusto, idEntidade, NumDocumento, numParcelas, valorParcela, dataVencimento, status, dt_pagamento, vr_pago, type_pag, id_usuario, nome_user FROM tbl_mov_contabil";
 $result = $conn->query($sql);
+
+// Inicializa o contador de notificações
+$registrosProximos = 0;
+
 ?>
 
 <table>
@@ -131,9 +155,9 @@ $result = $conn->query($sql);
             // Output dos dados da tabela
             while($row = $result->fetch_assoc()) {
                 $dataVencimento = strtotime($row["dataVencimento"]);
-                $diasRestantes = ($dataVencimento - time()) / (60 * 60 * 24);
-                $class = ($diasRestantes <= 7) ? "class='highlight'" : "";
-                echo "<tr $class onclick=\"mostrarRegistro(" . $row["id"] . ")\">";
+                $diasRestantes = floor(($dataVencimento - time()) / (60 * 60 * 24)); // Usar floor para obter o número inteiro de dias
+                $class = ($diasRestantes <= 7) ? "highlight" : ""; // Removido o 'class=' do código HTML
+                echo "<tr class='$class' ondblclick=\"mostrarRegistro(" . $row["id"] . ")\">"; // Adicionado evento de clique duplo
                 echo "<td>" . htmlspecialchars($row["id"]) . "</td>";
                 echo "<td>" . htmlspecialchars($row["idcontabil"]) . "</td>";
                 echo "<td>" . htmlspecialchars($row["idCentroCusto"]) . "</td>";
@@ -150,6 +174,11 @@ $result = $conn->query($sql);
                 echo "<td>" . htmlspecialchars($row["id_usuario"]) . "</td>";
                 echo "<td>" . htmlspecialchars($row["nome_user"]) . "</td>";
                 echo "</tr>";
+
+                // Incrementa o contador de notificações se a linha estiver destacada
+                if ($class == "highlight") {
+                    $registrosProximos++;
+                }
             }
         } else {
             echo "<tr><td colspan='15'>Nenhum resultado encontrado</td></tr>";
@@ -218,11 +247,9 @@ $result = $conn->query($sql);
         document.getElementById("popupOverlay").style.display = "none";
     }
 
-    function mostrarNotificacao() {
-        // Contagem de registros com vencimento próximo
-        var registrosProximos = document.querySelectorAll('.highlight').length;
-        alert("Existem " + registrosProximos + " registros com vencimento próximo.");
-        // Implemente aqui a lógica para exibir notificações de registros com vencimentos próximos
+    // Atualiza o contador de notificações quando a página é carregada
+    window.onload = function() {
+        document.getElementById("notificationCount").innerText = "<?php echo $registrosProximos; ?>";
     }
 </script>
 
