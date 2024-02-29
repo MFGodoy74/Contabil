@@ -77,6 +77,13 @@
             justify-content: center;
             align-items: center;
         }
+        .pagination-buttons {
+            margin-top: 10px;
+        }
+        .pagination-buttons button {
+            margin-right: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -99,7 +106,6 @@ if ($conn->connect_error) {
 }
 
 // Verificar se o formulário de edição foi submetido
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Processar e salvar os dados atualizados
     $id = $_POST['id'];
@@ -128,6 +134,23 @@ $result = $conn->query($sql);
 $registrosProximos = 0;
 
 ?>
+
+<!-- Seletor de páginas e controle de registros por página -->
+<div>
+    <label for="recordsPerPage">Registros por página:</label>
+    <select id="recordsPerPage" onchange="updateTable()">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+    </select>
+</div>
+<div id="pagination" class="pagination-buttons"></div>
+
+<!-- Filtro de dados -->
+<div>
+    <label for="filterText">Filtrar por:</label>
+    <input type="text" id="filterText" onkeyup="updateTable()">
+</div>
 
 <table>
     <thead>
@@ -214,6 +237,8 @@ $registrosProximos = 0;
 <div class="popup-overlay" id="popupOverlay" onclick="fecharPopup()"></div>
 
 <script>
+    var currentPage = 1;
+
     function mostrarRegistro(id) {
         // Exibir o formulário de edição em popup
         document.getElementById("editForm").style.display = "block";
@@ -250,6 +275,46 @@ $registrosProximos = 0;
     // Atualiza o contador de notificações quando a página é carregada
     window.onload = function() {
         document.getElementById("notificationCount").innerText = "<?php echo $registrosProximos; ?>";
+    }
+
+    function updateTable() {
+        var recordsPerPage = document.getElementById("recordsPerPage").value;
+        var filterText = document.getElementById("filterText").value.trim().toLowerCase();
+
+        var rows = document.querySelectorAll("tbody tr");
+        rows.forEach(function(row) {
+            var showRow = false;
+
+            var cells = row.querySelectorAll("td:not(:first-child)"); // Exclui a primeira célula (ID) da verificação
+            cells.forEach(function(cell) {
+                if (filterText === '' || cell.textContent.toLowerCase().includes(filterText)) {
+                    showRow = true;
+                }
+            });
+
+            if (showRow || filterText === '') {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        // Paginar dados
+        var pagination = document.getElementById("pagination");
+        pagination.innerHTML = '';
+        var totalRows = rows.length;
+        var totalPages = Math.ceil(totalRows / recordsPerPage);
+        var maxVisibleButtons = 5; // Número máximo de botões de página visíveis
+        var startPage = Math.max(1, currentPage - Math.floor(maxVisibleButtons / 2));
+        var endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
+        for (var i = startPage; i <= endPage; i++) {
+            pagination.innerHTML += `<button onclick="changePage(${i})">${i}</button>`;
+        }
+    }
+
+    function changePage(page) {
+        currentPage = page;
+        updateTable();
     }
 </script>
 
