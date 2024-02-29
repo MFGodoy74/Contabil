@@ -80,6 +80,26 @@
         #filterInput {
             margin-bottom: 10px;
         }
+
+        /* Estilos para os botões de navegação */
+        .pagination {
+            margin-top: 10px;
+        }
+
+        .pagination a {
+            color: black;
+            float: left;
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: background-color .3s;
+        }
+
+        .pagination a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .pagination a:hover:not(.active) {background-color: #ddd;}
     </style>
 </head>
 <body>
@@ -158,18 +178,18 @@ $registrosProximos = 0;
 </div>
 
 <!-- Navegação entre páginas -->
-<div id="pagination">
+<div class="pagination">
     <?php
     // Exibir links para páginas anteriores e próximas, se houver mais de uma página
     if ($totalPages > 1) {
         if ($currentPage > 1) {
-            echo "<a href='?page=".($currentPage - 1)."&recordsPerPage=$recordsPerPage'>Anterior</a>";
+            echo "<a href='?page=".($currentPage - 1)."&recordsPerPage=$recordsPerPage'>&laquo; Anterior</a>";
         }
         for ($i = 1; $i <= $totalPages; $i++) {
-            echo "<a href='?page=$i&recordsPerPage=$recordsPerPage'>$i</a>";
+            echo "<a href='?page=$i&recordsPerPage=$recordsPerPage'" . ($i == $currentPage ? " class='active'" : "") . ">$i</a>";
         }
         if ($currentPage != $totalPages) {
-            echo "<a href='?page=".($currentPage + 1)."&recordsPerPage=$recordsPerPage'>Próxima</a>";
+            echo "<a href='?page=".($currentPage + 1)."&recordsPerPage=$recordsPerPage'>Próxima &raquo;</a>";
         }
     }
     ?>
