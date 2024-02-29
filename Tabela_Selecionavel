@@ -77,12 +77,8 @@
             justify-content: center;
             align-items: center;
         }
-        .pagination-buttons {
-            margin-top: 10px;
-        }
-        .pagination-buttons button {
-            margin-right: 5px;
-            cursor: pointer;
+        #filterInput {
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -126,30 +122,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Query para selecionar os dados da tabela
-$sql = "SELECT id, idcontabil, idCentroCusto, idSubCentroCusto, idEntidade, NumDocumento, numParcelas, valorParcela, dataVencimento, status, dt_pagamento, vr_pago, type_pag, id_usuario, nome_user FROM tbl_mov_contabil";
+// Definir o número de registros por página
+$recordsPerPage = isset($_GET['recordsPerPage']) ? $_GET['recordsPerPage'] : 10;
+// Definir a página atual
+$currentPage = isset($_GET['page']) ? $_GET['page'] : 1;
+// Calcular o índice de início da busca na query
+$offset = ($currentPage - 1) * $recordsPerPage;
+
+// Query para selecionar os dados da tabela com paginação
+$sql = "SELECT id, idcontabil, idCentroCusto, idSubCentroCusto, idEntidade, NumDocumento, numParcelas, valorParcela, dataVencimento, status, dt_pagamento, vr_pago, type_pag, id_usuario, nome_user FROM tbl_mov_contabil LIMIT $offset, $recordsPerPage";
 $result = $conn->query($sql);
+
+// Query para contar o número total de registros
+$totalRecordsQuery = "SELECT COUNT(*) AS total FROM tbl_mov_contabil";
+$totalRecordsResult = $conn->query($totalRecordsQuery);
+$totalRecords = $totalRecordsResult->fetch_assoc()['total'];
+// Calcular o número total de páginas
+$totalPages = ceil($totalRecords / $recordsPerPage);
 
 // Inicializa o contador de notificações
 $registrosProximos = 0;
 
 ?>
 
-<!-- Seletor de páginas e controle de registros por página -->
+<!-- Filtro por todos os campos -->
+<input type="text" id="filterInput" onkeyup="filterTable()" placeholder="Filtrar por...">
+<!-- Seletor de páginas -->
 <div>
     <label for="recordsPerPage">Registros por página:</label>
     <select id="recordsPerPage" onchange="updateTable()">
-        <option value="5">5</option>
-        <option value="10" selected>10</option>
-        <option value="20">20</option>
+        <option value="5" <?php if ($recordsPerPage == 5) echo "selected"; ?>>5</option>
+        <option value="10" <?php if ($recordsPerPage == 10) echo "selected"; ?>>10</option>
+        <option value="20" <?php if ($recordsPerPage == 20) echo "selected"; ?>>20</option>
     </select>
 </div>
-<div id="pagination" class="pagination-buttons"></div>
 
-<!-- Filtro de dados -->
-<div>
-    <label for="filterText">Filtrar por:</label>
-    <input type="text" id="filterText" onkeyup="updateTable()">
+<!-- Navegação entre páginas -->
+<div id="pagination">
+    <?php
+    // Exibir links para páginas anteriores e próximas, se houver mais de uma página
+    if ($totalPages > 1) {
+        if ($currentPage > 1) {
+            echo "<a href='?page=".($currentPage - 1)."&recordsPerPage=$recordsPerPage'>Anterior</a>";
+        }
+        for ($i = 1; $i <= $totalPages; $i++) {
+            echo "<a href='?page=$i&recordsPerPage=$recordsPerPage'>$i</a>";
+        }
+        if ($currentPage != $totalPages) {
+            echo "<a href='?page=".($currentPage + 1)."&recordsPerPage=$recordsPerPage'>Próxima</a>";
+        }
+    }
+    ?>
 </div>
 
 <table>
@@ -172,7 +195,7 @@ $registrosProximos = 0;
             <th>Nome do Usuário</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="tableBody">
         <?php
         if ($result && $result->num_rows > 0) {
             // Output dos dados da tabela
@@ -237,8 +260,6 @@ $registrosProximos = 0;
 <div class="popup-overlay" id="popupOverlay" onclick="fecharPopup()"></div>
 
 <script>
-    var currentPage = 1;
-
     function mostrarRegistro(id) {
         // Exibir o formulário de edição em popup
         document.getElementById("editForm").style.display = "block";
@@ -272,49 +293,38 @@ $registrosProximos = 0;
         document.getElementById("popupOverlay").style.display = "none";
     }
 
-    // Atualiza o contador de notificações quando a página é carregada
-    window.onload = function() {
-        document.getElementById("notificationCount").innerText = "<?php echo $registrosProximos; ?>";
-    }
-
     function updateTable() {
         var recordsPerPage = document.getElementById("recordsPerPage").value;
-        var filterText = document.getElementById("filterText").value.trim().toLowerCase();
+        var currentPage = <?php echo $currentPage ?>;
+        window.location.href = "?page=" + currentPage + "&recordsPerPage=" + recordsPerPage;
+    }
 
-        var rows = document.querySelectorAll("tbody tr");
-        rows.forEach(function(row) {
-            var showRow = false;
-
-            var cells = row.querySelectorAll("td:not(:first-child)"); // Exclui a primeira célula (ID) da verificação
-            cells.forEach(function(cell) {
-                if (filterText === '' || cell.textContent.toLowerCase().includes(filterText)) {
-                    showRow = true;
+    function filterTable() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("filterInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("tableBody");
+        tr = table.getElementsByTagName("tr");
+        for (i = 0; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName("td");
+            for (var j = 0; j < td.length; j++) {
+                var cell = td[j];
+                if (cell) {
+                    txtValue = cell.textContent || cell.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                        break; // Mostrar a linha se um campo corresponder e passar para a próxima linha
+                    } else {
+                        tr[i].style.display = "none";
+                    }
                 }
-            });
-
-            if (showRow || filterText === '') {
-                row.style.display = "";
-            } else {
-                row.style.display = "none";
             }
-        });
-
-        // Paginar dados
-        var pagination = document.getElementById("pagination");
-        pagination.innerHTML = '';
-        var totalRows = rows.length;
-        var totalPages = Math.ceil(totalRows / recordsPerPage);
-        var maxVisibleButtons = 5; // Número máximo de botões de página visíveis
-        var startPage = Math.max(1, currentPage - Math.floor(maxVisibleButtons / 2));
-        var endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
-        for (var i = startPage; i <= endPage; i++) {
-            pagination.innerHTML += `<button onclick="changePage(${i})">${i}</button>`;
         }
     }
 
-    function changePage(page) {
-        currentPage = page;
-        updateTable();
+    // Atualiza o contador de notificações quando a página é carregada
+    window.onload = function() {
+        document.getElementById("notificationCount").innerText = "<?php echo $registrosProximos; ?>";
     }
 </script>
 
