@@ -16,6 +16,7 @@
       background-size: cover;
       background-repeat: no-repeat;
       background-color: rgba(52, 58, 64, 0.5); /* Cor com 50% de transparência */
+      transition: all 0.3s;
     }
     .sidebar-item {
       padding: 10px;
@@ -63,19 +64,45 @@
       border-right: 1px solid #dee2e6!important;
     }
     #page-content-wrapper {
-      width: calc(100% - 250px);
       transition: all 0.3s;
       position: relative;
     }
     #wrapper.toggled #page-content-wrapper {
-      width: 100%;
+      width: calc(100% - 250px);
+    }
+    #wrapper.toggled #sidebar-wrapper {
+      width: 0;
+    }
+    #menu-toggle {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 0;
+      }
+      #wrapper.toggled #page-content-wrapper {
+        width: 100%;
+      }
+      #wrapper.toggled #sidebar-wrapper {
+        width: 250px;
+      }
+      #menu-toggle {
+        display: block;
+        position: fixed;
+        right: 20px;
+        top: 20px;
+        
+      }
     }
   </style>
 </head>
 <body>
-
+ <!-- Botão para mostrar/ocultar barra lateral -->
+ <button class="btn" id="menu-toggle" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+  </button>
 <div class="d-flex" id="wrapper">
-  
+ 
 
   <!-- Barra lateral -->
   <div class=" border-right sidebar bg-transparent" id="sidebar-wrapper">  
